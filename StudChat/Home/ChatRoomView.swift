@@ -7,25 +7,50 @@
 
 import SwiftUI
 import SDWebImageSwiftUI
+import Combine
+
+class KeyboardObserver: ObservableObject {
+    @Published var keyboardHeight: CGFloat = 0
+    
+    private var cancellables = Set<AnyCancellable>()
+    
+    init() {
+        NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+            .compactMap { notification -> CGFloat? in
+                guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
+                    return nil
+                }
+                return keyboardFrame.height
+            }
+            .sink { [weak self] height in
+                withAnimation(.easeOut(duration: 0.25)) {
+                    self?.keyboardHeight = height
+                }
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+            .sink { [weak self] _ in
+                withAnimation(.easeOut(duration: 0.25)) {
+                    self?.keyboardHeight = 0
+                }
+            }
+            .store(in: &cancellables)
+    }
+}
 
 struct ChatRoomView: View {
     
     @Binding var messages: [Message]
     
     @State var message = ""
+    @FocusState private var isInputFocused: Bool
+    @StateObject private var keyboardObserver = KeyboardObserver()
     
     var channel: Channel
-    
-//    var mockMessages = [
-  //      Message(id: UUID(), createdAt: .now, username: "KerProgramer", imgURL: "pfp", text: "Kolega morate koristiti shortcutove"),
-    //    Message(id: UUID(), createdAt: .now, username: "TomaP", imgURL: "pfp", text: "U vim-u nema shortcutova"),
-      //  Message(id: UUID(), createdAt: .now, username: "KerProgramer", imgURL: "pfp", text: "Kolega kako ne znate što je apstraktna tvornica"),
-        //Message(id: UUID(), createdAt: .now, username: "TomaP", imgURL: "pfp", text: "Prebit ce me levara ako ne rijesim 212 ruby bugova do sutra"),
-    //]
-    
-    
+        
     var body: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 0) {
             ScrollViewReader { scrollView in
                 ScrollView {
                     VStack {
@@ -87,23 +112,26 @@ struct ChatRoomView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal)
                                 .padding(.bottom, 8)
+                                .id(message.id)
                             }
                         }
                     }
-                    //.offset(y: CGFloat(message.isEmpty ? 500 : 500 - 60 * messages.count))
                 }
                 .onAppear {
-                    withAnimation {
-                        scrollView.scrollTo(messages.count - 1, anchor: .bottom)
+                    if !messages.isEmpty {
+                        withAnimation {
+                            scrollView.scrollTo(messages.last?.id, anchor: .bottom)
+                        }
                     }
                 }
                 .onChange(of: messages) { oldValue, newValue in
-                    withAnimation {
-                        scrollView.scrollTo(messages.count - 1, anchor: .bottom)
+                    if !newValue.isEmpty {
+                        withAnimation {
+                            scrollView.scrollTo(newValue.last?.id, anchor: .bottom)
+                        }
                     }
                 }
             }
-            
             
             Divider()
                 .overlay {
@@ -117,6 +145,7 @@ struct ChatRoomView: View {
                         Capsule()
                             .fill(Color(uiColor: .systemGray5))
                     }
+                    .focused($isInputFocused)
                 
                 Button {
                     sendMessage()
@@ -132,10 +161,13 @@ struct ChatRoomView: View {
                         }
                 }
                 .frame(height: 70)
+                .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).count < 3)
             }
             .padding(.horizontal, 8)
+            .padding(.bottom, keyboardObserver.keyboardHeight > 0 ? keyboardObserver.keyboardHeight - 20 : 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .animation(.easeOut(duration: 0.25), value: keyboardObserver.keyboardHeight)
     }
     
     func sendMessage() {

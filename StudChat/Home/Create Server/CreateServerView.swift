@@ -24,12 +24,14 @@ struct CreateServerView: View {
                 Text("Create Your Server")
                     .font(.title)
                     .fontWeight(.bold)
+                    .foregroundStyle(.studChat)
                     .padding()
                 
                 Text("Server is the place where you can create your own community, share your knowledge, and connect with other students.")
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.6)
                     .padding(.bottom)
+                    .foregroundStyle(.studChat)
                 
                 NavigationLink {
                     ServerInfoView(showCreateServer: $showCreateServer)
@@ -52,6 +54,7 @@ struct CreateServerView: View {
                 
                 Text("Have one in mind?")
                     .fontWeight(.bold)
+                    .foregroundStyle(Color(UIColor.systemGray2))
                 
                 NavigationLink {
                     ServerSearchView()

@@ -38,7 +38,7 @@ struct ProfileView: View {
                             
                             Text("@kerProgramer")
                                 .font(.callout)
-                                .foregroundStyle(Color(UIColor.systemGray2))
+                                .foregroundStyle(Color(UIColor.systemGray4))
                         }
                         .padding(.leading)
                         .offset(y: -50)

@@ -25,11 +25,13 @@ struct AuthView: View {
                 Text("Welcome to STUDChat")
                     .font(.title)
                     .bold()
+                    .foregroundStyle(.studChat)
                 
                 Text("The most popular platform for messaging and sharing materials between studetnts and professors worldwide")
                     .font(.caption)
                     .padding()
                     .multilineTextAlignment(.center)
+                    .foregroundStyle(.studChat)
 
                 Spacer()
                 

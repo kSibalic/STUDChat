@@ -17,6 +17,7 @@ struct NoServerView: View {
                 .font(.title2)
                 .fontWeight(.bold)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .foregroundStyle(.studChat)
             
             Spacer()
             
@@ -30,9 +31,11 @@ struct NoServerView: View {
                 .font(.title3)
                 .fontWeight(.bold)
                 .padding()
+                .foregroundStyle(.studChat)
             
             Text("When you join or create server\n it will pop up here.")
                 .multilineTextAlignment(.center)
+                .foregroundStyle(.studChat)
                 
             
             Button {

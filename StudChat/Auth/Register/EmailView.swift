@@ -19,8 +19,10 @@ struct EmailView: View {
             Text("Enter email")
                 .font(.title)
                 .fontWeight(.bold)
+                .foregroundStyle(.studChat)
             
             ChatTextField(header: "Email", placeHolder: "Email", text: $viewModel.registerEmail)
+                .foregroundStyle(.studChat)
             
             NavigationLink {
                 NameView()

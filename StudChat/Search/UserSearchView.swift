@@ -9,6 +9,10 @@ import SwiftUI
 
 struct UserSearchView: View {
     
+    init() {
+        UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: UIColor(.studChat)]
+    }
+    
     @State var userSearch = ""
     
     var filterUsers: [ChatUser] {
@@ -36,7 +40,7 @@ struct UserSearchView: View {
                 }
             }
             .frame(maxHeight: .infinity)
-            .background(Color(.background))
+            .background(Color.white)
             .scrollContentBackground(.hidden)
             .searchable(text: $userSearch)
             .navigationTitle("Users")
