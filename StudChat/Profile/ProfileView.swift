@@ -31,12 +31,12 @@ struct ProfileView: View {
                                         .padding(-8)
                                 }
                             
-                            Text("Ker Programer")
+                            Text("Kevin Durant")
                                 .font(.title2)
                                 .bold()
                                 .foregroundStyle(.white)
                             
-                            Text("@kerProgramer")
+                            Text("@easymoneysniper")
                                 .font(.callout)
                                 .foregroundStyle(Color(UIColor.systemGray4))
                         }

@@ -93,6 +93,15 @@ final class DatabaseService {
             .execute()
             .value
     }
+    
+    func updateUserPushToken(userId: UUID, token: String) async throws {
+        try await supabase
+            .database
+            .from(Table.users)
+            .update(["push_token": token])
+            .eq("id", value: userId)
+            .execute()
+    }
 }
 
 // Servers
@@ -274,14 +283,12 @@ extension DatabaseService {
         Task {
             publicSchema = supabase.realtimeV2.channel("public:\(Table.messages)")
             
-            // Observe socket connection status
             Task {
                 for await status in supabase.realtimeV2.statusChange {
                     print("RealtimeV2 socket status: \(status)")
                 }
             }
             
-            // Observe channel subscription status
             if let channel = publicSchema {
                 Task {
                     for await status in channel.statusChange {
@@ -289,7 +296,6 @@ extension DatabaseService {
                     }
                 }
                 
-                // Listen for message insertions
                 Task {
                     for await insertion in channel.postgresChange(InsertAction.self, table: Table.messages) {
                         do {
@@ -299,10 +305,19 @@ extension DatabaseService {
                             let insertedMessage = try insertion.decodeRecord(as: Message.self, decoder: decoder)
                             print("New message received: \(insertedMessage)")
                             
-                            // Update local messages collection
-                            if var existingMessages = self.messages[insertedMessage.channelUid] {
-                                existingMessages.append(insertedMessage)
-                                self.messages[insertedMessage.channelUid] = existingMessages
+                            // Only trigger notification if the message is not from the current user
+                            if insertedMessage.username != AuthService.shared.currentUser?.username {
+                                // Schedule notification
+                                NotificationService.shared.scheduleMessageNotification(
+                                    from: insertedMessage.username,
+                                    message: insertedMessage.text
+                                )
+                            }
+                            
+                            // Update messages in the appropriate channel
+                            if var channelMessages = self.messages[insertedMessage.channelUid] {
+                                channelMessages.append(insertedMessage)
+                                self.messages[insertedMessage.channelUid] = channelMessages
                             } else {
                                 self.messages[insertedMessage.channelUid] = [insertedMessage]
                             }
@@ -312,9 +327,41 @@ extension DatabaseService {
                     }
                 }
                 
-                // Subscribe to the channel
                 await channel.subscribe()
             }
+        }
+    }
+    
+    func checkForNewMessages(since timestamp: Date?) async throws {
+        let messages: [Message] = try await supabase
+            .database
+            .from(Table.messages)
+            .select()
+            .order("created_at", ascending: false)
+            .limit(50)
+            .execute()
+            .value
+        
+        let newMessages = timestamp == nil ? messages : messages.filter { $0.createdAt > timestamp! }
+        
+        for message in newMessages {
+            if message.username != AuthService.shared.currentUser?.username {
+                NotificationService.shared.scheduleMessageNotification(
+                    from: message.username,
+                    message: message.text
+                )
+            }
+            
+            if var channelMessages = self.messages[message.channelUid] {
+                channelMessages.append(message)
+                self.messages[message.channelUid] = channelMessages
+            } else {
+                self.messages[message.channelUid] = [message]
+            }
+        }
+        
+        if let lastMessage = messages.first {
+            NotificationService.shared.updateLastMessageTimestamp(lastMessage.createdAt)
         }
     }
 }
