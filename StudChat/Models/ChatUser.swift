@@ -10,8 +10,8 @@ import Foundation
 struct ChatUser: Codable, Identifiable, Equatable {
     var id: UUID?
     let createdAt: Date
-    let username: String
-    let displayName: String
+    var username: String
+    var displayName: String
     let email: String
     var imageURL: String
     let dob: Date

@@ -366,6 +366,92 @@ extension DatabaseService {
     }
 }
 
+// Profile Picture
+extension DatabaseService {
+    
+    /// Updates user profile information in the database
+    func updateUserProfile(_ user: ChatUser) async throws {
+        guard let userId = user.id else {
+            throw UserFetchError.databaseError(NSError(domain: "DatabaseService", code: -1, userInfo: [NSLocalizedDescriptionKey: "User ID is missing"]))
+        }
+        
+        // Create update data matching your database columns
+        let updateData: [String: AnyJSON] = [
+            "username": try AnyJSON(user.username),
+            "image_url": try AnyJSON(user.imageURL)
+        ]
+        
+        try await supabase
+            .database
+            .from(Table.users)
+            .update(updateData)
+            .eq("id", value: userId)
+            .execute()
+        
+        // Update the user in the users array if it exists
+        if let index = users.firstIndex(where: { $0.id == userId }) {
+            users[index] = user
+        }
+    }
+    
+    /// Fetches fresh user data from the database
+    func refreshUserData(for userId: UUID) async throws -> ChatUser {
+        let user: ChatUser = try await supabase
+            .database
+            .from(Table.users)
+            .select()
+            .eq("id", value: userId)
+            .single()
+            .execute()
+            .value
+        
+        // Update the user in the users array if it exists
+        if let index = users.firstIndex(where: { $0.id == userId }) {
+            users[index] = user
+        }
+        
+        return user
+    }
+}
+
+// MARK: - Storage Management Extension
+extension DatabaseService {
+    
+    /// Uploads file to Supabase storage
+    func uploadFile(
+        bucket: String,
+        path: String,
+        data: Data,
+        contentType: String
+    ) async throws -> String {
+        
+        try await supabase.storage
+            .from(bucket)
+            .upload(
+                path: path,
+                file: data,
+                options: FileOptions(
+                    cacheControl: "3600",
+                    contentType: contentType,
+                    upsert: true
+                )
+            )
+        
+        let publicURL = try supabase.storage
+            .from(bucket)
+            .getPublicURL(path: path)
+        
+        return publicURL.absoluteString
+    }
+    
+    /// Deletes file from Supabase storage
+    func deleteFile(bucket: String, path: String) async throws {
+        try await supabase.storage
+            .from(bucket)
+            .remove(paths: [path])
+    }
+}
+
 struct Message: Codable, Identifiable, Equatable {
     var id: UUID
     let createdAt: Date
